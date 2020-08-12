@@ -46,9 +46,14 @@ return [
 
 ## Usage
 
+### Detect Text
+
 ```php
-$skeleton = new pkboom\GoogleVision();
-echo $skeleton->echoPhrase('Hello, pkboom!');
+use Pkboom\GoogleVision\GoogleVisionFactory;
+
+$googleVision = GoogleVisionFactory::create();
+
+$result = $googleVision->text($imagePath);
 ```
 
 ## Requirements
