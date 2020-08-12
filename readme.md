@@ -56,12 +56,119 @@ $googleVision = GoogleVisionFactory::create();
 $result = $googleVision->text($imagePath);
 ```
 
-## Requirements
+### Detect Logos
 
-### Testing
+```php
+use Pkboom\GoogleVision\GoogleVisionFactory;
 
-```bash
-composer test
+$googleVision = GoogleVisionFactory::create();
+
+$result = $googleVision->logo($imagePath);
+```
+
+### Detect crop hints
+
+```php
+use Pkboom\GoogleVision\GoogleVisionFactory;
+
+$googleVision = GoogleVisionFactory::create();
+
+$result = $googleVision->cropHints($imagePath);
+```
+
+### Detect document
+
+```php
+use Pkboom\GoogleVision\GoogleVisionFactory;
+
+$googleVision = GoogleVisionFactory::create();
+
+$result = $googleVision->document($imagePath);
+```
+
+### Detect face
+
+```php
+use Pkboom\GoogleVision\GoogleVisionFactory;
+
+$googleVision = GoogleVisionFactory::create();
+
+$result = $googleVision->face($imagePath, $extension, $outputPath);
+```
+
+### Detect image properties
+
+```php
+use Pkboom\GoogleVision\GoogleVisionFactory;
+
+$googleVision = GoogleVisionFactory::create();
+
+$result = $googleVision->imageProperty($imagePath);
+```
+
+### Detect image labels
+
+```php
+use Pkboom\GoogleVision\GoogleVisionFactory;
+
+$googleVision = GoogleVisionFactory::create();
+
+$result = $googleVision->label($imagePath);
+```
+
+### Detect image landmarks
+
+```php
+use Pkboom\GoogleVision\GoogleVisionFactory;
+
+$googleVision = GoogleVisionFactory::create();
+
+$result = $googleVision->landmark($imagePath);
+```
+
+### Detect objects
+
+```php
+use Pkboom\GoogleVision\GoogleVisionFactory;
+
+$googleVision = GoogleVisionFactory::create();
+
+$result = $googleVision->object($imagePath);
+```
+
+### Detect explicit content
+
+```php
+use Pkboom\GoogleVision\GoogleVisionFactory;
+
+$googleVision = GoogleVisionFactory::create();
+
+$result = $googleVision->safeSearch($imagePath);
+```
+
+### Detect Web entities and pages
+
+```php
+use Pkboom\GoogleVision\GoogleVisionFactory;
+
+$googleVision = GoogleVisionFactory::create();
+
+$result = $googleVision->web($imagePath);
+```
+
+### Detect pdf
+
+You can detect pdf and store it as Json on Google Cloud Storage.
+
+```php
+use Pkboom\GoogleVision\GoogleVisionFactory;
+
+$path = 'gs://your-bucket/file.pdf';
+$output = 'gs://your-bucket/results/';
+
+$googleVision = GoogleVisionFactory::create();
+
+$googleStorage->pdf($path, $output);
 ```
 
 ## License
