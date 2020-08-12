@@ -27,7 +27,7 @@ You must publish the configuration with this command:
 php artisan vendor:publish --provider="Pkboom\GoogleVision\GoogleVisionServiceProvider"
 ```
 
-This will publish a file called google-calendar.php in your config-directory with these contents:
+This will publish a file called google-vision.php in your config-directory with these contents:
 
 ```php
 return [
