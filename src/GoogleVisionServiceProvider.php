@@ -3,6 +3,7 @@
 namespace Pkboom\GoogleVision;
 
 use Illuminate\Support\ServiceProvider;
+use Pkboom\GoogleVision\Facades\GoogleVision;
 use Pkboom\GoogleVision\Exceptions\InvalidConfiguration;
 
 class GoogleVisionServiceProvider extends ServiceProvider
@@ -16,6 +17,8 @@ class GoogleVisionServiceProvider extends ServiceProvider
 
             return GoogleVisionFactory::create();
         });
+
+        $this->app->alias(GoogleVision::class, 'laravel-google-vision');
 
         $this->mergeConfigFrom(__DIR__.'/../config/google-vision.php', 'google-vision');
     }

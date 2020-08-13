@@ -10,6 +10,11 @@ use Pkboom\GoogleVision\GoogleVisionFactory;
 $googleVision = GoogleVisionFactory::create();
 
 $result = $googleVision->text($imagePath);
+
+// statically
+use Pkboom\GoogleVision\Facades\GoogleVision;
+
+GoogleVision::face($imagePath);
 ```
 
 ## Installation
@@ -64,6 +69,9 @@ $googleVision = GoogleVisionFactory::create();
 
 $result = $googleVision->logo($imagePath);
 
+// with extension
+$result = $googleVision->logo($imagePath, $imageExtension);
+
 // with file output
 $result = $googleVision
     ->output($outputFilePath);
@@ -98,6 +106,9 @@ use Pkboom\GoogleVision\GoogleVisionFactory;
 $googleVision = GoogleVisionFactory::create();
 
 $result = $googleVision->face($imagePath, $extension, $outputPath);
+
+// with extension
+$result = $googleVision->face($imagePath, $imageExtension);
 
 // with file output
 $result = $googleVision
@@ -134,6 +145,9 @@ use Pkboom\GoogleVision\GoogleVisionFactory;
 $googleVision = GoogleVisionFactory::create();
 
 $result = $googleVision->landmark($imagePath);
+
+// with extension
+$result = $googleVision->landmark($imagePath, $imageExtension);
 
 // with file output
 $result = $googleVision

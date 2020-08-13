@@ -1,13 +1,13 @@
 <?php
 
-namespace Illuminate\Support\Facades;
+namespace Pkboom\GoogleVision\Facades;
 
-use Pkboom\GoogleVision\GoogleVision;
+use Illuminate\Support\Facades\Facade;
 
-class Queue extends Facade
+class GoogleVision extends Facade
 {
     protected static function getFacadeAccessor()
     {
-        return GoogleVision::class;
+        return 'laravel-google-vision';
     }
 }
