@@ -1,7 +1,6 @@
 # Manage Google Vision for Laravel applications
 
-[![Latest Stable Version](https://poser.pugx.org/pkboom/google-vision/v/stable)](https://packagist.org/packages/pkboom/google-vision)
-
+[![Latest Stable Version](https://poser.pugx.org/pkboom/google-vision/v)](//packagist.org/packages/pkboom/google-vision)
 This package makes working with Google Vision a breeze. Once it has been set up you can do these things:
 
 ```php
