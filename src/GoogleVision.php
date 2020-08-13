@@ -21,6 +21,17 @@ class GoogleVision
 
     public $output;
 
+    public static $likelihood = [
+            'UNKNOWN',
+            'VERY_UNLIKELY',
+            'UNLIKELY',
+            'POSSIBLE',
+            'LIKELY',
+            'VERY_LIKELY',
+    ];
+
+    public $includeGeo = false;
+
     public function __construct(ImageAnnotatorClient $imageAnnotator)
     {
         $this->imageAnnotator = $imageAnnotator;
@@ -31,13 +42,7 @@ class GoogleVision
         $response = $this->imageAnnotator->textDetection(file_get_contents($path));
         $texts = $response->getTextAnnotations();
 
-        $results = [];
-
-        foreach ($texts as $text) {
-            $results[] = $text->getDescription();
-        }
-
-        return $results;
+        return collect($texts)->map(fn($text) => $text->getDescription());
     }
 
     public function logo($path, $extension = null)
@@ -45,40 +50,19 @@ class GoogleVision
         $response = $this->imageAnnotator->logoDetection(file_get_contents($path));
         $logos = $response->getLogoAnnotations();
 
-        // $results = [];
-
-        $results = collect($logos)->map(function($logo) {
-            return [
-                'logo' => $logo->getDescription(),
-                'bounds' => $this->getBounds($logo),
-            ];
-        });
-
-        if ($results->isNotEmpty() && $this->output) {
-            $this->drawBounds($results, $path, $extension);
-        }
-
-        return $results;
+        return collect($logos)->map(fn($logo) => [
+            'logo' => $logo->getDescription(),
+            'bounds' => $this->getBounds($logo),
+        ])->when($this->output, fn($collection) => $this->drawBounds($collection, $path, $extension));
     }
 
     public function cropHints($path)
     {
         $response = $this->imageAnnotator->cropHintsDetection(file_get_contents($path));
-        $annotations = $response->getCropHintsAnnotation();
+        $annotation = $response->getCropHintsAnnotation();
 
-        $bounds = [];
-
-        if ($annotations) {
-            foreach ($annotations->getCropHints() as $hint) {
-                $vertices = $hint->getBoundingPoly()->getVertices();
-
-                foreach ($vertices as $vertex) {
-                    $bounds[] = [$vertex->getX(), $vertex->getY()];
-                }
-            }
-        }
-
-        return $bounds;
+        return  collect(optional($annotation)->getCropHints())
+            ->map(fn($hint) => $this->getBounds($hint));
     }
 
     public function document($path)
@@ -116,68 +100,41 @@ class GoogleVision
         $response = $this->imageAnnotator->faceDetection(file_get_contents($path));
         $faces = $response->getFaceAnnotations();
 
-        $results = [];
-
-        foreach ($faces as $face) {
-            $vertices = $face->getBoundingPoly()->getVertices();
-            $bounds = [];
-
-            foreach ($vertices as $vertex) {
-                $bounds[] = [$vertex->getX(), $vertex->getY()];
-            }
-
-            $results[] = $this->getLikelihood($face) + [
-                'bounds' => $bounds,
-            ];
-        }
-
-        if (count($faces) && $this->output) {
-            $this->drawBounds($results, $path, $extension);
-        }
-
-        return $results;
+        return collect($faces)
+            ->map(fn($face) => $this->getFaceLikelihood($face) + ['bounds' => $this->getBounds($face)])
+            ->when($this->output, fn($collection) => $this->drawBounds($collection, $path, $extension));
     }
 
-    public function getLikelihood($face)
+    protected function getFaceLikelihood($face)
     {
-        $likelihoodName = [
-            'UNKNOWN',
-            'VERY_UNLIKELY',
-            'UNLIKELY',
-            'POSSIBLE',
-            'LIKELY',
-            'VERY_LIKELY',
-        ];
-
         return [
-            'anger' => $likelihoodName[$face->getAngerLikelihood()],
-            'joy' => $likelihoodName[$face->getJoyLikelihood()],
-            'surprise' => $likelihoodName[$face->getSurpriseLikelihood()],
-            'sorrow' => $likelihoodName[$face->getSorrowLikelihood()],
-            'under_exposed' => $likelihoodName[$face->getUnderExposedLikelihood()],
-            'blurred' => $likelihoodName[$face->getBlurredLikelihood()],
-            'headwear' => $likelihoodName[$face->getHeadwearLikelihood()],
+            'anger' => static::$likelihood[$face->getAngerLikelihood()],
+            'joy' => static::$likelihood[$face->getJoyLikelihood()],
+            'surprise' => static::$likelihood[$face->getSurpriseLikelihood()],
+            'sorrow' => static::$likelihood[$face->getSorrowLikelihood()],
+            'under_exposed' => static::$likelihood[$face->getUnderExposedLikelihood()],
+            'blurred' => static::$likelihood[$face->getBlurredLikelihood()],
+            'headwear' => static::$likelihood[$face->getHeadwearLikelihood()],
         ];
     }
+
     public function imageProperty($path)
     {
         $response = $this->imageAnnotator->imagePropertiesDetection(file_get_contents($path));
         $props = $response->getImagePropertiesAnnotation();
 
-        $results = [];
+        return collect($props->getDominantColors()->getColors())
+            ->map(fn($colorInfo) => $this->getProperties($colorInfo));
+    }
 
-        foreach ($props->getDominantColors()->getColors() as $colorInfo) {
-            $color = $colorInfo->getColor();
-
-            $results[] = [
-                'Fraction' => $colorInfo->getPixelFraction(),
-                'Red' => $color->getRed(),
-                'Green' => $color->getGreen(),
-                'Blue' => $color->getBlue(),
-            ];
-        }
-
-        return $results;
+    protected function getProperties($colorInfo)
+    {
+        return [
+            'Fraction' => $colorInfo->getPixelFraction(),
+            'Red' => $colorInfo->getColor()->getRed(),
+            'Green' => $colorInfo->getColor()->getGreen(),
+            'Blue' => $colorInfo->getColor()->getBlue(),
+        ];
     }
 
     public function label($path)
@@ -185,15 +142,7 @@ class GoogleVision
         $response = $this->imageAnnotator->labelDetection(file_get_contents($path));
         $labels = $response->getLabelAnnotations();
 
-        $results = [];
-
-        if ($labels) {
-            foreach ($labels as $label) {
-                $results[] = $label->getDescription();
-            }
-        }
-
-        return $results;
+        return collect($labels)->map(fn($label) => $label->getDescription());
     }
 
     public function landmark($path, $extension = null)
@@ -201,20 +150,12 @@ class GoogleVision
         $response = $this->imageAnnotator->landmarkDetection(file_get_contents($path));
         $landmarks = $response->getLandmarkAnnotations();
 
-        $results = [];
-
-        foreach ($landmarks as $landmark) {
-            $results[] = [
+        return collect($landmarks)
+            ->map(fn($landmark) => [
                 'landmark' => $landmark->getDescription(),
                 'bounds' => $this->getBounds($landmark),
-            ];          
-        }
-        
-        if (count($landmarks) && $this->output) {
-            $this->drawBounds($results, $path, $extension);
-        }
-
-        return $results;
+            ])
+            ->when($this->output, fn($collection) => $this->drawBounds($collection, $path, $extension));
     }
 
     public function object($path)
@@ -222,24 +163,15 @@ class GoogleVision
         $response = $this->imageAnnotator->objectLocalization(file_get_contents($path));
         $objects = $response->getLocalizedObjectAnnotations();
 
-        $results = [];
-
-        foreach ($objects as $object) {
+        return collect($objects)->map(function($object) {
             $vertices = $object->getBoundingPoly()->getNormalizedVertices();
-            $bounds = [];
-
-            foreach ($vertices as $vertex) {
-                $bounds[] = [$vertex->getX(), $vertex->getY()];
-            }
-
-            $results[] = [
+            
+            return [
                 'name' => $object->getName(),
                 'score' => $object->getScore(),
-                'bounds' => $bounds,
+                'bounds' => collect($vertices)->map(fn($vertex) => [$vertex->getX(), $vertex->getY()]),
             ];
-        }
-
-        return $results;
+        });
     }
 
     public function safeSearch($path)
@@ -247,20 +179,18 @@ class GoogleVision
         $response = $this->imageAnnotator->safeSearchDetection(file_get_contents($path));
         $safe = $response->getSafeSearchAnnotation();
 
-        $likelihoodName = ['UNKNOWN', 'VERY_UNLIKELY', 'UNLIKELY', 'POSSIBLE', 'LIKELY', 'VERY_LIKELY'];
-
         return [
-            'adult' => $likelihoodName[$safe->getAdult()],
-            'medical' => $likelihoodName[$safe->getMedical()],
-            'spoof' => $likelihoodName[$safe->getSpoof()],
-            'violence' => $likelihoodName[$safe->getViolence()],
-            'racy' => $likelihoodName[$safe->getRacy()],
+            'adult' => static::$likelihood[$safe->getAdult()],
+            'medical' => static::$likelihood[$safe->getMedical()],
+            'spoof' => static::$likelihood[$safe->getSpoof()],
+            'violence' => static::$likelihood[$safe->getViolence()],
+            'racy' => static::$likelihood[$safe->getRacy()],
         ];
     }
 
-    public function web($path, $includeGeoResult = false)
+    public function web($path)
     {
-        $response = $this->imageAnnotator->webDetection(file_get_contents($path), $this->imageContext($includeGeoResult));
+        $response = $this->imageAnnotator->webDetection(file_get_contents($path), $this->imageContext());
         $web = $response->getWebDetection();
 
         $results = [];
@@ -295,22 +225,29 @@ class GoogleVision
         return $results;
     }
 
-    public function imageContext($include)
+    public function includeGeoResult()
     {
-        $imageContext = null;
+        $this->includeGeo = true;
 
-        if ($include) {
-            $params = new WebDetectionParams();
-            $params->setIncludeGeoResults(true);
+        return $this;
+    }
 
-            $imageContext = new ImageContext();
-            $imageContext->setWebDetectionParams($params);
+    protected function imageContext()
+    {
+        if (! $this->includeGeo) {
+            return []; 
         }
+
+        $params = new WebDetectionParams();
+        $params->setIncludeGeoResults(true);
+
+        $imageContext = new ImageContext();
+        $imageContext->setWebDetectionParams($params);
 
         return ['imageContext' => $imageContext];
     }
 
-    public function pdf($path, $output)
+    public function pdf($path)
     {
         $feature = (new Feature())->setType(Type::DOCUMENT_TEXT_DETECTION);
 
@@ -322,7 +259,7 @@ class GoogleVision
             ->setGcsSource($gcsSource)
             ->setMimeType($mimeType);
 
-        $gcsDestination = (new GcsDestination())->setUri($output);
+        $gcsDestination = (new GcsDestination())->setUri($this->pdfDestination($path));
 
         $batchSize = 2;
 
@@ -335,11 +272,18 @@ class GoogleVision
             ->setInputConfig($inputConfig)
             ->setOutputConfig($outputConfig);
 
-        $requests = [$request];
-
-        $operation = $this->imageAnnotator->asyncBatchAnnotateFiles($requests);
+        $operation = $this->imageAnnotator->asyncBatchAnnotateFiles([$request]);
 
         $operation->pollUntilComplete();
+    }
+
+    protected function pdfDestination($path)
+    {
+        preg_match('/^gs:\/\/([a-zA-Z0-9\._\-]+)\/?(\S+)?$/', $path, $match);
+
+        $bucket = $match[1];
+        
+        return $this->output ?? "gs://{$bucket}/results/";
     }
 
     public function output($path)
@@ -349,7 +293,7 @@ class GoogleVision
         return $this;
     }
 
-    public function drawBounds($results, $path, $extension)
+    protected function drawBounds($results, $path, $extension)
     {
         $imageCreateFunc = [
             'png' => 'imagecreatefrompng',
@@ -383,10 +327,11 @@ class GoogleVision
             });
 
         call_user_func($imageWriteFunc[$extension], $outputImage, $this->output);
+
+        return $results;
     }
 
-
-	public function getBounds($object)
+	protected function getBounds($object)
 	{
         return collect($object->getBoundingPoly()->getVertices())
             ->map(function($vertex) {
