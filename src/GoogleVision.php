@@ -234,12 +234,8 @@ class GoogleVision
 
     protected function imageContext()
     {
-        if (! $this->includeGeo) {
-            return []; 
-        }
-
         $params = new WebDetectionParams();
-        $params->setIncludeGeoResults(true);
+        $params->setIncludeGeoResults($this->includeGeo);
 
         $imageContext = new ImageContext();
         $imageContext->setWebDetectionParams($params);
@@ -259,7 +255,7 @@ class GoogleVision
             ->setGcsSource($gcsSource)
             ->setMimeType($mimeType);
 
-        $gcsDestination = (new GcsDestination())->setUri($this->pdfDestination($path));
+        $gcsDestination = (new GcsDestination())->setUri($this->to($path));
 
         $batchSize = 2;
 
@@ -277,7 +273,7 @@ class GoogleVision
         $operation->pollUntilComplete();
     }
 
-    protected function pdfDestination($path)
+    protected function to($path)
     {
         preg_match('/^gs:\/\/([a-zA-Z0-9\._\-]+)\/?(\S+)?$/', $path, $match);
 

@@ -16,6 +16,7 @@
   "require": {
     "php": "^7.4",
     "google/cloud-vision": "^1.1",
+    "illuminate/support": "^7.25",
     "tightenco/collect": "^7.19"
   },
   "autoload": {
