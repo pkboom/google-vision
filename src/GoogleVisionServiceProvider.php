@@ -3,8 +3,8 @@
 namespace Pkboom\GoogleVision;
 
 use Illuminate\Support\ServiceProvider;
-use Pkboom\GoogleVision\Facades\GoogleVision;
 use Pkboom\GoogleVision\Exceptions\InvalidConfiguration;
+use Pkboom\GoogleVision\Facades\GoogleVision;
 
 class GoogleVisionServiceProvider extends ServiceProvider
 {
@@ -34,11 +34,11 @@ class GoogleVisionServiceProvider extends ServiceProvider
     {
         $credentials = $config['service_account_credentials_json'];
 
-        if (!is_array($credentials) && !is_string($credentials)) {
+        if (! is_array($credentials) && ! is_string($credentials)) {
             throw InvalidConfiguration::credentialsTypeWrong($credentials);
         }
 
-        if (is_string($credentials) && !file_exists($credentials)) {
+        if (is_string($credentials) && ! file_exists($credentials)) {
             throw InvalidConfiguration::credentialsJsonDoesNotExist($credentials);
         }
     }
