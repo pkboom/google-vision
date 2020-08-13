@@ -9,7 +9,7 @@ class GoogleVisionServiceProvider extends ServiceProvider
 {
     public function register()
     {
-        app()->bind(GoogleVision::class, function () {
+        $this->app->bind(GoogleVision::class, function () {
             $config = config('google-vision');
 
             $this->guardAgainstInvalidConfiguration($config);
