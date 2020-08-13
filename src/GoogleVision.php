@@ -45,22 +45,16 @@ class GoogleVision
         $response = $this->imageAnnotator->logoDetection(file_get_contents($path));
         $logos = $response->getLogoAnnotations();
 
-        $results = [];
+        // $results = [];
 
-        foreach ($logos as $logo) {
-            $vertices = $logo->getBoundingPoly()->getVertices();
-            $bounds = [];
-
-            foreach ($vertices as $vertex) {
-                $bounds[] = [$vertex->getX(), $vertex->getY()];
-            }
-
-            $results[] = ['logo' => $logo->getDescription()] + [
-                'bounds' => $bounds,
+        $results = collect($logos)->map(function($logo) {
+            return [
+                'logo' => $logo->getDescription(),
+                'bounds' => $this->getBounds($logo),
             ];
-        }
+        });
 
-        if ($logos || $this->output) {
+        if ($results->isNotEmpty() && $this->output) {
             $this->drawBounds($results, $path, $extension);
         }
 
@@ -137,7 +131,7 @@ class GoogleVision
             ];
         }
 
-        if ($faces || $this->output) {
+        if (count($faces) && $this->output) {
             $this->drawBounds($results, $path, $extension);
         }
 
@@ -165,43 +159,6 @@ class GoogleVision
             'headwear' => $likelihoodName[$face->getHeadwearLikelihood()],
         ];
     }
-
-    public function drawBounds($results, $path, $extension)
-    {
-        $imageCreateFunc = [
-            'png' => 'imagecreatefrompng',
-            'gd' => 'imagecreatefromgd',
-            'gif' => 'imagecreatefromgif',
-            'jpg' => 'imagecreatefromjpeg',
-            'jpeg' => 'imagecreatefromjpeg',
-        ];
-
-        $imageWriteFunc = [
-            'png' => 'imagepng',
-            'gd' => 'imagegd',
-            'gif' => 'imagegif',
-            'jpg' => 'imagejpeg',
-            'jpeg' => 'imagejpeg',
-        ];
-
-        $extension ??= pathinfo($path, PATHINFO_EXTENSION);
-
-        if (!array_key_exists($extension, $imageCreateFunc)) {
-            throw new \Exception('Unsupported image extension');
-        }
-
-        copy($path, $this->output);
-
-        $outputImage = call_user_func($imageCreateFunc[$extension], $this->output);
-
-        collect($results)->map(fn($result) => $result['bounds'])
-            ->each(function($bound) use($outputImage){
-                imagerectangle($outputImage, $bound[0][0], $bound[0][1], $bound[2][0], $bound[2][1], 0x00ff00);
-            });
-
-        call_user_func($imageWriteFunc[$extension], $outputImage, $this->output);
-    }
-
     public function imageProperty($path)
     {
         $response = $this->imageAnnotator->imagePropertiesDetection(file_get_contents($path));
@@ -239,7 +196,7 @@ class GoogleVision
         return $results;
     }
 
-    public function landmark($path)
+    public function landmark($path, $extension = null)
     {
         $response = $this->imageAnnotator->landmarkDetection(file_get_contents($path));
         $landmarks = $response->getLandmarkAnnotations();
@@ -247,7 +204,14 @@ class GoogleVision
         $results = [];
 
         foreach ($landmarks as $landmark) {
-            $results[] = $landmark->getDescription();
+            $results[] = [
+                'landmark' => $landmark->getDescription(),
+                'bounds' => $this->getBounds($landmark),
+            ];          
+        }
+        
+        if (count($landmarks) && $this->output) {
+            $this->drawBounds($results, $path, $extension);
         }
 
         return $results;
@@ -384,4 +348,49 @@ class GoogleVision
 
         return $this;
     }
+
+    public function drawBounds($results, $path, $extension)
+    {
+        $imageCreateFunc = [
+            'png' => 'imagecreatefrompng',
+            'gd' => 'imagecreatefromgd',
+            'gif' => 'imagecreatefromgif',
+            'jpg' => 'imagecreatefromjpeg',
+            'jpeg' => 'imagecreatefromjpeg',
+        ];
+
+        $imageWriteFunc = [
+            'png' => 'imagepng',
+            'gd' => 'imagegd',
+            'gif' => 'imagegif',
+            'jpg' => 'imagejpeg',
+            'jpeg' => 'imagejpeg',
+        ];
+
+        $extension ??= pathinfo($path, PATHINFO_EXTENSION);
+
+        if (!array_key_exists($extension, $imageCreateFunc)) {
+            throw new \Exception('Unsupported image extension');
+        }
+
+        copy($path, $this->output);
+
+        $outputImage = call_user_func($imageCreateFunc[$extension], $this->output);
+
+        collect($results)->map(fn($result) => $result['bounds'])
+            ->each(function($bound) use($outputImage){
+                imagerectangle($outputImage, $bound[0][0], $bound[0][1], $bound[2][0], $bound[2][1], 0x00ff00);
+            });
+
+        call_user_func($imageWriteFunc[$extension], $outputImage, $this->output);
+    }
+
+
+	public function getBounds($object)
+	{
+        return collect($object->getBoundingPoly()->getVertices())
+            ->map(function($vertex) {
+                return [$vertex->getX(), $vertex->getY()];
+            });
+	}
 }
