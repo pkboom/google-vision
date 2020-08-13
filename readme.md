@@ -48,44 +48,111 @@ return [
 
 ### Detect Text
 
-You can detect things from images.
+```php
+use Pkboom\GoogleVision\GoogleVisionFactory;
+
+$googleVision = GoogleVisionFactory::create();
+
+$result = $googleVision->text($imagePath);
+```
+
+### Detect Logos
 
 ```php
 use Pkboom\GoogleVision\GoogleVisionFactory;
 
 $googleVision = GoogleVisionFactory::create();
 
-// Detect texts and handwriting
-$result = $googleVision->text($imagePath);
-
-// Detect logos
 $result = $googleVision->logo($imagePath);
+```
 
-// Detect cropHints
+### Detect crop hints
+
+```php
+use Pkboom\GoogleVision\GoogleVisionFactory;
+
+$googleVision = GoogleVisionFactory::create();
+
 $result = $googleVision->cropHints($imagePath);
+```
 
-// Detect document
+### Detect document
+
+```php
+use Pkboom\GoogleVision\GoogleVisionFactory;
+
+$googleVision = GoogleVisionFactory::create();
+
 $result = $googleVision->document($imagePath);
+```
 
-// Detect faces
+### Detect face
+
+```php
+use Pkboom\GoogleVision\GoogleVisionFactory;
+
+$googleVision = GoogleVisionFactory::create();
+
 $result = $googleVision->face($imagePath, $extension, $outputPath);
+```
 
-// Detect image properties
+### Detect image properties
+
+```php
+use Pkboom\GoogleVision\GoogleVisionFactory;
+
+$googleVision = GoogleVisionFactory::create();
+
 $result = $googleVision->imageProperty($imagePath);
+```
 
-// Detect image labels
+### Detect image labels
+
+```php
+use Pkboom\GoogleVision\GoogleVisionFactory;
+
+$googleVision = GoogleVisionFactory::create();
+
 $result = $googleVision->label($imagePath);
+```
 
-// Detect image landmarks
+### Detect image landmarks
+
+```php
+use Pkboom\GoogleVision\GoogleVisionFactory;
+
+$googleVision = GoogleVisionFactory::create();
+
 $result = $googleVision->landmark($imagePath);
+```
 
-// Detect images
+### Detect objects
+
+```php
+use Pkboom\GoogleVision\GoogleVisionFactory;
+
+$googleVision = GoogleVisionFactory::create();
+
 $result = $googleVision->object($imagePath);
+```
 
-// Detect explicit content
+### Detect explicit content
+
+```php
+use Pkboom\GoogleVision\GoogleVisionFactory;
+
+$googleVision = GoogleVisionFactory::create();
+
 $result = $googleVision->safeSearch($imagePath);
+```
 
-// Detect Web entities and pages
+### Detect Web entities and pages
+
+```php
+use Pkboom\GoogleVision\GoogleVisionFactory;
+
+$googleVision = GoogleVisionFactory::create();
+
 $result = $googleVision->web($imagePath);
 ```
 
