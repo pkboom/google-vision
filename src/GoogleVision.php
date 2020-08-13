@@ -19,6 +19,8 @@ class GoogleVision
 
     public $storage;
 
+    public $output;
+
     public function __construct(ImageAnnotatorClient $imageAnnotator)
     {
         $this->imageAnnotator = $imageAnnotator;
@@ -38,7 +40,7 @@ class GoogleVision
         return $results;
     }
 
-    public function logo($path)
+    public function logo($path, $extension = null)
     {
         $response = $this->imageAnnotator->logoDetection(file_get_contents($path));
         $logos = $response->getLogoAnnotations();
@@ -46,7 +48,20 @@ class GoogleVision
         $results = [];
 
         foreach ($logos as $logo) {
-            $results[] = $logo->getDescription();
+            $vertices = $logo->getBoundingPoly()->getVertices();
+            $bounds = [];
+
+            foreach ($vertices as $vertex) {
+                $bounds[] = [$vertex->getX(), $vertex->getY()];
+            }
+
+            $results[] = ['logo' => $logo->getDescription()] + [
+                'bounds' => $bounds,
+            ];
+        }
+
+        if ($logos || $this->output) {
+            $this->drawBounds($results, $path, $extension);
         }
 
         return $results;
@@ -102,7 +117,7 @@ class GoogleVision
         return $results;
     }
 
-    public function face($path, $extension, $output = null)
+    public function face($path, $extension = null)
     {
         $response = $this->imageAnnotator->faceDetection(file_get_contents($path));
         $faces = $response->getFaceAnnotations();
@@ -112,6 +127,7 @@ class GoogleVision
         foreach ($faces as $face) {
             $vertices = $face->getBoundingPoly()->getVertices();
             $bounds = [];
+
             foreach ($vertices as $vertex) {
                 $bounds[] = [$vertex->getX(), $vertex->getY()];
             }
@@ -121,41 +137,8 @@ class GoogleVision
             ];
         }
 
-        if ($faces && $output) {
-            $imageCreateFunc = [
-                'png' => 'imagecreatefrompng',
-                'gd' => 'imagecreatefromgd',
-                'gif' => 'imagecreatefromgif',
-                'jpg' => 'imagecreatefromjpeg',
-                'jpeg' => 'imagecreatefromjpeg',
-            ];
-
-            $imageWriteFunc = [
-                'png' => 'imagepng',
-                'gd' => 'imagegd',
-                'gif' => 'imagegif',
-                'jpg' => 'imagejpeg',
-                'jpeg' => 'imagejpeg',
-            ];
-
-            copy($path, $output);
-            if (!array_key_exists($extension, $imageCreateFunc)) {
-                throw new \Exception('Unsupported image extension');
-            }
-            $outputImage = call_user_func($imageCreateFunc[$extension], $output);
-
-            foreach ($faces as $face) {
-                $vertices = $face->getBoundingPoly()->getVertices();
-                if ($vertices) {
-                    $x1 = $vertices[0]->getX();
-                    $y1 = $vertices[0]->getY();
-                    $x2 = $vertices[2]->getX();
-                    $y2 = $vertices[2]->getY();
-                    imagerectangle($outputImage, $x1, $y1, $x2, $y2, 0x00ff00);
-                }
-            }
-
-            call_user_func($imageWriteFunc[$extension], $outputImage, $output);
+        if ($faces || $this->output) {
+            $this->drawBounds($results, $path, $extension);
         }
 
         return $results;
@@ -181,6 +164,42 @@ class GoogleVision
             'blurred' => $likelihoodName[$face->getBlurredLikelihood()],
             'headwear' => $likelihoodName[$face->getHeadwearLikelihood()],
         ];
+    }
+
+    public function drawBounds($results, $path, $extension)
+    {
+        $imageCreateFunc = [
+            'png' => 'imagecreatefrompng',
+            'gd' => 'imagecreatefromgd',
+            'gif' => 'imagecreatefromgif',
+            'jpg' => 'imagecreatefromjpeg',
+            'jpeg' => 'imagecreatefromjpeg',
+        ];
+
+        $imageWriteFunc = [
+            'png' => 'imagepng',
+            'gd' => 'imagegd',
+            'gif' => 'imagegif',
+            'jpg' => 'imagejpeg',
+            'jpeg' => 'imagejpeg',
+        ];
+
+        $extension ??= pathinfo($path, PATHINFO_EXTENSION);
+
+        if (!array_key_exists($extension, $imageCreateFunc)) {
+            throw new \Exception('Unsupported image extension');
+        }
+
+        copy($path, $this->output);
+
+        $outputImage = call_user_func($imageCreateFunc[$extension], $this->output);
+
+        collect($results)->map(fn($result) => $result['bounds'])
+            ->each(function($bound) use($outputImage){
+                imagerectangle($outputImage, $bound[0][0], $bound[0][1], $bound[2][0], $bound[2][1], 0x00ff00);
+            });
+
+        call_user_func($imageWriteFunc[$extension], $outputImage, $this->output);
     }
 
     public function imageProperty($path)
@@ -357,5 +376,12 @@ class GoogleVision
         $operation = $this->imageAnnotator->asyncBatchAnnotateFiles($requests);
 
         $operation->pollUntilComplete();
+    }
+
+    public function output($path)
+    {
+        $this->output = $path;
+
+        return $this;
     }
 }
